@@ -21,14 +21,8 @@ Helm chart directly from it into your Kubernetes cluster. Please refer to the
 the additional details required.
 
 ```shell
-# Let helm the command line tool know about a Helm chart repository
-# that we decide to name frx-challenges.
 helm repo add jupyterhub-groups-exporter https://2i2c.org/jupyterhub-groups-exporter
 helm repo update
-
-# Simplified example on how to install a Helm chart from a Helm chart repository
-# named jupyterhub-groups-exporter. See the Helm chart's documentation for additional details
-# required.
 helm install jupyterhub-groups-exporter https://2i2c.org/jupyterhub-groups-exporter --version <version>
 ```
 
