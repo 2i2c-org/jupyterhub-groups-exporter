@@ -1,5 +1,3 @@
-# jupyterhub-groups-exporter
-
 # [jupyterhub-groups-exporter](https://github.com/2i2c-org/jupyterhub-groups-exporter)
 
 > [!NOTE]  
