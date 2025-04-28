@@ -39,3 +39,4 @@ async def test_groups_exporter_number(admin_request):
                 assert len(family.samples) == 100  # see tests/jupyterhub_config.py
     else:
         raise RuntimeError("No response returned from groups exporter service")
+
