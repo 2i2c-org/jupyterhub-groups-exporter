@@ -1,0 +1,33 @@
+config:
+  groupsExporter:
+    update_exporter_interval: 60
+    log_level: DEBUG
+
+extraEnv:
+  - name: JUPYTERHUB_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: hub
+        key: hub.services.jupyterhub-groups-exporter.apiToken
+  - name: PYTHONUNBUFFERED
+    value: "1"
+
+image:
+  repository: quay.io/2i2c/jupyterhub-groups-exporter
+  tag: "set-by-chartpress"
+
+service:
+  type: ClusterIP
+  port: 8100
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podAnnotations: { prometheus.io/scrape: "true" }
+
+podLabels: { hub.jupyter.org/network-access-hub: "true" }

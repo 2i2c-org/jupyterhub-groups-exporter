@@ -43,6 +43,7 @@ repos:
     rev: v3.0.3
     hooks:
       - id: prettier
+        exclude: templates
 
   # Misc...
   - repo: https://github.com/pre-commit/pre-commit-hooks
