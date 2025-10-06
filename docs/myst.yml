@@ -1,0 +1,23 @@
+version: 1
+project:
+  title: JupyterHub Groups Exporter
+  description: An externally-managed JupyterHub service to export user group memberships to Prometheus.
+  authors:
+    - name: Jenny Wong
+  github: https://github.com/2i2c-org/jupyterhub-groups-exporter
+  license: BSD-3-Clause
+site:
+  template: book-theme
+  nav:
+    - title: Overview
+      url: /
+    - title: How-to
+      children:
+        - url: /how-to/installation
+    - title: Reference
+      children:
+        - url: /reference/configuration
+        - url: /reference/metrics
+  actions:
+    - title: Learn More
+      url: https://github.com/2i2c-org/jupyterhub-groups-exporter
