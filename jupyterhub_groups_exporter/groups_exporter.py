@@ -44,7 +44,7 @@ async def update_user_group_info(
     session: aiohttp.ClientSession,
     hub_url: URL,
     allowed_groups: list,
-    default_group: str,
+    double_count: str,
     namespace: str,
     USER_GROUP: Gauge,
 ):
@@ -88,31 +88,40 @@ async def update_user_group_info(
     logger.info(
         f"Updating {len(list_groups)} groups and {len(unique_users)} users for metric user_group_info."
     )
-    USER_GROUP.clear()  # Clear previous prometheus metrics
-    for group in items:
+    # Clear previous prometheus metrics
+    USER_GROUP.clear()
+    # Filter out groups not in the allowed list
+    for group in items.copy():
         if group["name"] not in list_groups:
             logger.debug(f"Group {group['name']} is not in allowed groups, skipping.")
-            continue
+            items.remove(group)
+    # Invert the mapping from groups -> users to user -> groups
+    user_to_groups = {}
+    for group in items:
         for user in group["users"]:
-            if user in users_in_multiple_groups:
-                USER_GROUP.labels(
-                    namespace=f"{namespace}",
-                    usergroup=f"{default_group}",
-                    username=f"{user}",
-                    username_escaped=escape_username(user),
-                ).set(1)
-                logger.info(
-                    f"User {user} is in multiple groups, assigning to default group {default_group}."
-                )
+            user_to_groups.setdefault(user, []).append(group["name"])
+    # Loop over users
+    for user in list(user_to_groups.keys()):
+        if user in users_in_multiple_groups:
+            USER_GROUP.labels(
+                namespace=f"{namespace}",
+                usergroup="multiple",
+                username=f"{user}",
+                username_escaped=escape_username(user),
+            ).set(1)
+            logger.info(
+                f"User {user} is in multiple groups: assigning to default group 'multiple'."
+            )
+            if double_count == "False":
                 continue
-            else:
-                USER_GROUP.labels(
-                    namespace=f"{namespace}",
-                    usergroup=f"{group["name"]}",
-                    username=f"{user}",
-                    username_escaped=escape_username(user),
-                ).set(1)
-                logger.info(f"User {user} is in group {group["name"]}.")
+        for group in user_to_groups[user]:
+            USER_GROUP.labels(
+                namespace=f"{namespace}",
+                usergroup=f"{group}",
+                username=f"{user}",
+                username_escaped=escape_username(user),
+            ).set(1)
+            logger.info(f"User {user} is in group {group}.")
 
 
 async def main():
@@ -137,10 +146,10 @@ async def main():
         help="List of allowed user groups to be exported. If not provided, all groups will be exported.",
     )
     argparser.add_argument(
-        "--default_group",
-        default="other",
+        "--double_count",
+        default="True",
         type=str,
-        help="Default group to account usage against for users with multiple group memberships.",
+        help="If 'True', double-count usage for users with multiple group memberships. If 'False', do not double-count. All users with multiple group memberships will be assigned to a default group called 'multiple'.",
     )
     argparser.add_argument(
         "--hub_url",
@@ -201,9 +210,9 @@ async def main():
     else:
         args.allowed_groups = None
 
-    if args.default_group:
+    if args.double_count:
         logger.info(
-            f"Default group for users with multiple group memberships: {args.default_group}"
+            f"Double-count users with multiple group memberships: {args.double_count}"
         )
 
     start_http_server(args.port)
@@ -224,7 +233,7 @@ async def main():
                 session,
                 hub_url,
                 args.allowed_groups,
-                args.default_group,
+                args.double_count,
                 args.jupyterhub_namespace,
                 USER_GROUP,
             )
