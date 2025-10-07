@@ -3,6 +3,7 @@ Prometheus user groups exported by JupyterHub.
 """
 
 import argparse
+import asyncio
 import logging
 import os
 import string
@@ -133,18 +134,30 @@ async def handle_home(request: web.Request):
 async def handle_groups(request: web.Request):
     session = request.app["session"]
     hub_url = request.app["hub_url"]
+    request.app["namespace"]
     data = await fetch_page(session, hub_url, "hub/api/groups")
     return web.Response(text=f"{data}", status=200, content_type="application/json")
 
 
+async def background_update(app: web.Application):
+    while True:
+        try:
+            data = await fetch_page(app["session"], app["hub_url"], "hub/api/groups")
+            logger.debug(f"Fetched data: {data}")
+        except Exception as e:
+            logger.error(f"Error updating user group info: {e}")
+        await asyncio.sleep(app["update_interval"])
+
+
 async def on_startup(app):
     app["session"] = aiohttp.ClientSession(headers=app["headers"])
-    print("[INFO] Client session started")
+    app["task"] = asyncio.create_task(background_update(app))
+    logger.info("Client session started.")
 
 
 async def on_cleanup(app):
     await app["session"].close()
-    print("[INFO] Client session closed")
+    logger.info("Client session closed.")
 
 
 def sub_app(
@@ -153,6 +166,8 @@ def sub_app(
     allowed_groups: list = None,
     double_count: str = None,
     namespace: str = None,
+    jupyterhub_metrics_prefix: str = None,
+    update_interval: int = None,
 ):
     app = web.Application()
     app["headers"] = headers
@@ -160,6 +175,8 @@ def sub_app(
     app["allowed_groups"] = allowed_groups
     app["double_count"] = double_count
     app["namespace"] = namespace
+    app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
+    app["update_interval"] = update_interval
     app.router.add_get("/", handle_home)
     app.router.add_get("/metrics/user-groups", handle_groups)
     app.on_startup.append(on_startup)
@@ -240,18 +257,6 @@ def main():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    USER_GROUP = Gauge(
-        "user_group_info",
-        "JupyterHub namespace, username and user group membership information.",
-        [
-            "namespace",
-            "usergroup",
-            "username",
-            "username_escaped",
-        ],
-        namespace=args.jupyterhub_metrics_prefix,
-    )
-
     if args.allowed_groups:
         logger.info(
             f"Filtering JupyterHub user groups exporter to only include: {args.allowed_groups}"
@@ -282,6 +287,8 @@ def main():
         allowed_groups=args.allowed_groups,
         double_count=args.double_count,
         namespace=args.jupyterhub_namespace,
+        jupyterhub_metrics_prefix=args.jupyterhub_metrics_prefix,
+        update_interval=args.update_exporter_interval,
     )
     app.add_subapp(args.hub_service_prefix, metrics_app)
     web.run_app(app, port=args.port)
