@@ -188,7 +188,7 @@ def sub_app(
     app["update_interval"] = update_interval
     app["USER_GROUP"] = USER_GROUP
     app.router.add_get("/", handle_home)
-    app.router.add_get("/metrics/user-groups", handle_groups)
+    app.router.add_get("/metrics", handle_groups)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
     return app
