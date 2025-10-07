@@ -124,16 +124,46 @@ async def update_user_group_info(
             logger.info(f"User {user} is in group {group}.")
 
 
-async def handle_metrics(request):
+async def handle_home(request: web.Request):
     return web.Response(
         text="Welcome to the JupyterHub user groups exporter service.", status=200
     )
 
 
-def web_app(hub_api_token: str = None):
+async def handle_groups(request: web.Request):
+    session = request.app["session"]
+    hub_url = request.app["hub_url"]
+    data = await fetch_page(session, hub_url, "hub/api/groups")
+    return web.Response(text=f"{data}", status=200, content_type="application/json")
+
+
+async def on_startup(app):
+    app["session"] = aiohttp.ClientSession(headers=app["headers"])
+    print("[INFO] Client session started")
+
+
+async def on_cleanup(app):
+    await app["session"].close()
+    print("[INFO] Client session closed")
+
+
+def sub_app(
+    headers: str = None,
+    hub_url: str = None,
+    allowed_groups: list = None,
+    double_count: str = None,
+    namespace: str = None,
+):
     app = web.Application()
-    app["hub_api_token"] = hub_api_token
-    app.router.add_get("/", handle_metrics)
+    app["headers"] = headers
+    app["hub_url"] = URL(hub_url)
+    app["allowed_groups"] = allowed_groups
+    app["double_count"] = double_count
+    app["namespace"] = namespace
+    app.router.add_get("/", handle_home)
+    app.router.add_get("/metrics/user-groups", handle_groups)
+    app.on_startup.append(on_startup)
+    app.on_cleanup.append(on_cleanup)
     return app
 
 
@@ -245,7 +275,15 @@ def main():
     }
 
     app = web.Application()
-    app.add_subapp(args.hub_service_prefix, web_app(hub_api_token=args.hub_api_token))
+    # Mount sub app to route the hub service prefix
+    metrics_app = sub_app(
+        headers=headers,
+        hub_url=args.hub_url,
+        allowed_groups=args.allowed_groups,
+        double_count=args.double_count,
+        namespace=args.jupyterhub_namespace,
+    )
+    app.add_subapp(args.hub_service_prefix, metrics_app)
     web.run_app(app, port=args.port)
 
     # asyncio.get_event_loop()
