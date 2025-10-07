@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "jupyterhub_groups_exporter"
 description = "JupyterHub service to export user group membership to Prometheus."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 license = {file = "LICENSE"}
 keywords = ["jupyterhub", "prometheus"]
 authors = [
