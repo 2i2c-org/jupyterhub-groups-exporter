@@ -13,10 +13,17 @@ import aiohttp
 import backoff
 import escapism
 from aiohttp import web
-from prometheus_client import Gauge
+from prometheus_client import (
+    CollectorRegistry,
+    Gauge,
+    generate_latest,
+)
 from yarl import URL
 
 logger = logging.getLogger(__name__)
+
+
+registry_groups = CollectorRegistry()
 
 
 @backoff.on_exception(backoff.expo, aiohttp.ClientError, max_tries=12, logger=logger)
@@ -42,16 +49,17 @@ def escape_username(username: str) -> str:
 
 
 async def update_user_group_info(
-    session: aiohttp.ClientSession,
-    hub_url: URL,
-    allowed_groups: list,
-    double_count: str,
-    namespace: str,
-    USER_GROUP: Gauge,
+    app: web.Application,
 ):
     """
     Update the prometheus exporter with user group memberships fetched from the JupyterHub API.
     """
+    session = app["session"]
+    hub_url = app["hub_url"]
+    allowed_groups = app["allowed_groups"]
+    double_count = app["double_count"]
+    namespace = app["namespace"]
+    USER_GROUP = app["USER_GROUP"]
     data = await fetch_page(session, hub_url, "hub/api/groups")
     if "_pagination" in data:
         logger.debug(f"Received paginated data: {data['_pagination']}")
@@ -132,17 +140,15 @@ async def handle_home(request: web.Request):
 
 
 async def handle_groups(request: web.Request):
-    session = request.app["session"]
-    hub_url = request.app["hub_url"]
-    request.app["namespace"]
-    data = await fetch_page(session, hub_url, "hub/api/groups")
-    return web.Response(text=f"{data}", status=200, content_type="application/json")
+    return web.Response(
+        body=generate_latest(registry_groups), status=200, content_type="text/plain"
+    )
 
 
-async def background_update(app: web.Application):
+async def background_update(app: web.Application, update_function: callable):
     while True:
         try:
-            data = await fetch_page(app["session"], app["hub_url"], "hub/api/groups")
+            data = await update_function(app)
             logger.debug(f"Fetched data: {data}")
         except Exception as e:
             logger.error(f"Error updating user group info: {e}")
@@ -151,8 +157,8 @@ async def background_update(app: web.Application):
 
 async def on_startup(app):
     app["session"] = aiohttp.ClientSession(headers=app["headers"])
-    app["task"] = asyncio.create_task(background_update(app))
     logger.info("Client session started.")
+    app["task"] = asyncio.create_task(background_update(app, update_user_group_info))
 
 
 async def on_cleanup(app):
@@ -168,6 +174,7 @@ def sub_app(
     namespace: str = None,
     jupyterhub_metrics_prefix: str = None,
     update_interval: int = None,
+    USER_GROUP: Gauge = None,
 ):
     app = web.Application()
     app["headers"] = headers
@@ -177,6 +184,7 @@ def sub_app(
     app["namespace"] = namespace
     app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
     app["update_interval"] = update_interval
+    app["USER_GROUP"] = USER_GROUP
     app.router.add_get("/", handle_home)
     app.router.add_get("/metrics/user-groups", handle_groups)
     app.on_startup.append(on_startup)
@@ -273,6 +281,19 @@ def main():
         f"Starting JupyterHub user groups Prometheus exporter in namespace {args.jupyterhub_namespace}, port {args.port} with an update interval of {args.update_exporter_interval} seconds."
     )
 
+    USER_GROUP = Gauge(
+        "user_group_info",
+        "JupyterHub namespace, username and user group membership information.",
+        [
+            "namespace",
+            "usergroup",
+            "username",
+            "username_escaped",
+        ],
+        namespace=args.jupyterhub_metrics_prefix,
+        registry=registry_groups,
+    )
+
     URL(args.hub_url)
     headers = {
         "Accept": "application/jupyterhub-pagination+json",
@@ -289,22 +310,10 @@ def main():
         namespace=args.jupyterhub_namespace,
         jupyterhub_metrics_prefix=args.jupyterhub_metrics_prefix,
         update_interval=args.update_exporter_interval,
+        USER_GROUP=USER_GROUP,
     )
     app.add_subapp(args.hub_service_prefix, metrics_app)
     web.run_app(app, port=args.port)
-
-    # asyncio.get_event_loop()
-    # async with aiohttp.ClientSession(headers=headers) as session:
-    #     while True:
-    #         await update_user_group_info(
-    #             session,
-    #             hub_url,
-    #             args.allowed_groups,
-    #             args.double_count,
-    #             args.jupyterhub_namespace,
-    #             USER_GROUP,
-    #         )
-    #         await asyncio.sleep(args.update_exporter_interval)
 
 
 if __name__ == "__main__":
