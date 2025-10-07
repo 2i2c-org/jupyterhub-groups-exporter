@@ -49,7 +49,7 @@ else:
     with token_file.open("w") as f:
         f.write(token)
 
-jupyterhub_groups_exporter_port = 9090
+jupyterhub_groups_exporter_port = 8080
 jupyterhub_groups_exporter_interval = 10
 log_level = "INFO"
 c.JupyterHub.services = [
