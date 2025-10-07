@@ -230,9 +230,11 @@ def main():
     )
     argparser.add_argument(
         "--hub_service_prefix",
-        default=os.environ.get("JUPYTERHUB_SERVICE_PREFIX").rstrip("/"),
+        default=os.environ.get(
+            "JUPYTERHUB_SERVICE_PREFIX", "services/groups-exporter"
+        ).rstrip("/"),
         type=str,
-        help="JupyterHub service prefix, e.g. /services/groups-exporter.",
+        help="JupyterHub service prefix, defaults to '/services/groups-exporter'.",
     )
     argparser.add_argument(
         "--hub_api_token",
