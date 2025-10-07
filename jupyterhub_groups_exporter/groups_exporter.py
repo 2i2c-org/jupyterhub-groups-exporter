@@ -14,6 +14,7 @@ import backoff
 import escapism
 from aiohttp import web
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     CollectorRegistry,
     Gauge,
     generate_latest,
@@ -141,7 +142,9 @@ async def handle_home(request: web.Request):
 
 async def handle_groups(request: web.Request):
     return web.Response(
-        body=generate_latest(registry_groups), status=200, content_type="text/plain"
+        body=generate_latest(registry_groups),
+        status=200,
+        content_type=CONTENT_TYPE_LATEST,
     )
 
 
