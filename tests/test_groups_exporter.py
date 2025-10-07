@@ -32,7 +32,7 @@ async def test_groups_exporter_alive(admin_request):
 async def test_groups_exporter_number(admin_request):
     """Test that the number of groups and users in the exporter matches the hub config."""
     response = await admin_request(
-        path="services/groups-exporter/metrics/user-groups", parse_json=False
+        path="services/groups-exporter/metrics", parse_json=False
     )
     if response:
         for family in text_string_to_metric_families(response):
