@@ -3,6 +3,17 @@ entries:
   jupyterhub-groups-exporter:
   - apiVersion: v2
     appVersion: 0.1.0
+    created: "2025-10-08T09:41:38.141491372Z"
+    description: A Helm chart for deploying the jupyterhub-groups-exporter service
+      on Kubernetes.
+    digest: 441019b0bac5047d91fe691bc44777aa27a16e95be88d7bb3a87564f62047222
+    name: jupyterhub-groups-exporter
+    type: application
+    urls:
+    - https://2i2c.org/jupyterhub-groups-exporter/jupyterhub-groups-exporter-1.0.1-0.dev.git.123.h14911e8.tgz
+    version: 1.0.1-0.dev.git.123.h14911e8
+  - apiVersion: v2
+    appVersion: 0.1.0
     created: "2025-10-07T15:50:17.478549931Z"
     description: A Helm chart for deploying the jupyterhub-groups-exporter service
       on Kubernetes.
@@ -386,4 +397,4 @@ entries:
     urls:
     - https://2i2c.org/jupyterhub-groups-exporter/jupyterhub-groups-exporter-0.0.1-0.dev.git.69.h881fb0a.tgz
     version: 0.0.1-0.dev.git.69.h881fb0a
-generated: "2025-10-07T15:50:17.477981828Z"
+generated: "2025-10-08T09:41:38.141136996Z"
