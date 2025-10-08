@@ -60,7 +60,7 @@ c.JupyterHub.services = [
         "command": [
             sys.executable,
             "-m",
-            "jupyterhub_groups_exporter.groups_exporter",
+            "jupyterhub_groups_exporter.app",
             "--port",
             f"{jupyterhub_groups_exporter_port}",
             "--hub_url",
