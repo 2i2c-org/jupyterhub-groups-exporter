@@ -133,13 +133,7 @@ async def update_user_group_info(
             logger.info(f"User {user} is in group {group}.")
 
 
-async def handle_home(request: web.Request):
-    return web.Response(
-        text="Welcome to the JupyterHub user groups exporter service.", status=200
-    )
-
-
-async def handle_groups(request: web.Request):
+async def handle(request: web.Request):
     return web.Response(
         body=generate_latest(registry_groups),
         status=200,
@@ -187,8 +181,7 @@ def sub_app(
     app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
     app["update_interval"] = update_interval
     app["USER_GROUP"] = USER_GROUP
-    app.router.add_get("/", handle_home)
-    app.router.add_get("/metrics", handle_groups)
+    app.router.add_get("/", handle)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
     return app
