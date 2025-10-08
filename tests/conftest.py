@@ -92,8 +92,7 @@ async def api_request(
                     logger.error("Failed to decode response.")
                     raise
             else:
-                logger.error(f"Response code: {resp.status}")
-                return None
+                raise aiohttp.ClientError(f"Bad response: {resp.status}")
 
 
 @pytest.fixture(scope="session")
