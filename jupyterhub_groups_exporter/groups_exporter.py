@@ -106,7 +106,7 @@ async def update_user_group_info(
             logger.info(
                 f"User {user} is in multiple groups: assigning to default group 'multiple'."
             )
-            if double_count == "False":
+            if double_count == False:
                 continue
         for group in user_to_groups[user]:
             USER_GROUP.labels(

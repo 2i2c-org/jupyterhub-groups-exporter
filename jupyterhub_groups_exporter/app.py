@@ -20,8 +20,14 @@ from .groups_exporter import update_user_group_info
 
 logger = logging.getLogger(__name__)
 
-
 registry_groups = CollectorRegistry()
+
+
+def _str_to_bool(value: str) -> bool:
+    if value.lower() == "true":
+        return True
+    else:
+        return False
 
 
 async def handle(request: web.Request):
@@ -101,9 +107,9 @@ def main():
     )
     argparser.add_argument(
         "--double_count",
-        default="True",
-        type=str,
-        help="If 'True', double-count usage for users with multiple group memberships. If 'False', do not double-count. All users with multiple group memberships will be assigned to a default group called 'multiple'.",
+        default="true",
+        type=_str_to_bool,
+        help="If 'true', double-count usage for users with multiple group memberships. If 'false', do not double-count. All users with multiple group memberships will be assigned to a default group called 'multiple'.",
     )
     argparser.add_argument(
         "--hub_url",

@@ -71,7 +71,7 @@ c.JupyterHub.services = [
             "group-0",
             "group-2",
             "--double_count",
-            "True",
+            "true",
             "--log_level",
             f"{log_level}",
         ],
