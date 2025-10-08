@@ -32,7 +32,7 @@ podAnnotations:
   {
     prometheus.io/scrape: "true",
     prometheus.io/port: "8100",
-    prometheus.io/path: "/service/groups-exporter/",
+    prometheus.io/path: "/services/groups-exporter/",
   }
 
 podLabels: { hub.jupyter.org/network-access-hub: "true" }
