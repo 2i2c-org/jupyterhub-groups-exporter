@@ -10,17 +10,15 @@ import os
 import aiohttp
 from aiohttp import web
 from prometheus_client import (
-    CollectorRegistry,
     Gauge,
     generate_latest,
 )
 from yarl import URL
 
 from .groups_exporter import update_group_usage, update_user_group_info
+from .metrics import USER_GROUP, USER_GROUP_MEMORY
 
 logger = logging.getLogger(__name__)
-
-registry = CollectorRegistry()
 
 
 def _str_to_bool(value: str) -> bool:
@@ -32,7 +30,7 @@ def _str_to_bool(value: str) -> bool:
 
 async def handle(request: web.Request):
     return web.Response(
-        body=generate_latest(registry),
+        body=generate_latest(),
         status=200,
         content_type="text/plain",
     )
@@ -192,34 +190,11 @@ def main():
             f"Double-count users with multiple group memberships: {args.double_count}"
         )
 
+    if args.jupyterhub_metrics_prefix:
+        os.environ["JUPYTERHUB_METRICS_PREFIX"] = args.jupyterhub_metrics_prefix
+
     logger.info(
         f"Starting JupyterHub user groups Prometheus exporter in namespace {args.jupyterhub_namespace}, port {args.port} with an update interval of {args.update_exporter_interval} seconds."
-    )
-
-    USER_GROUP = Gauge(
-        "user_group_info",
-        "JupyterHub namespace, username and user group membership information.",
-        [
-            "namespace",
-            "usergroup",
-            "username",
-            "username_escaped",
-        ],
-        namespace=args.jupyterhub_metrics_prefix,
-        registry=registry,
-    )
-
-    USER_GROUP_MEMORY = Gauge(
-        "user_group_memory_bytes",
-        "Memory usage in bytes by user and group.",
-        [
-            "namespace",
-            "usergroup",
-            "username",
-            "username_escaped",
-        ],
-        namespace=args.jupyterhub_metrics_prefix,
-        registry=registry,
     )
 
     URL(args.hub_url)
