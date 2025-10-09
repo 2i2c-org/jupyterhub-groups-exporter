@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 @backoff.on_exception(backoff.expo, aiohttp.ClientError, max_tries=12, logger=logger)
-async def fetch_page(session: aiohttp.ClientSession, hub_url: URL, path: str = False):
+async def fetch_page(session: aiohttp.ClientSession, url: URL, path: str = False):
     """
     Fetch a page from the JupyterHub API.
     """
-    url = hub_url / path if path else hub_url
+    url = url / path if path else url
     logger.debug(f"Fetching {url}")
     async with session.get(url) as response:
         return await response.json()
