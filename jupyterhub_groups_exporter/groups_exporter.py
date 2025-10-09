@@ -1,6 +1,7 @@
 import logging
 import string
 from collections import Counter
+from datetime import datetime, timedelta
 
 import aiohttp
 import backoff
@@ -8,17 +9,21 @@ import escapism
 from aiohttp import web
 from yarl import URL
 
+from .metrics import MEMORY_REQUESTS_PER_USER, USER_GROUP, USER_GROUP_MEMORY
+
 logger = logging.getLogger(__name__)
 
 
 @backoff.on_exception(backoff.expo, aiohttp.ClientError, max_tries=12, logger=logger)
-async def fetch_page(session: aiohttp.ClientSession, url: URL, path: str = False):
+async def fetch_page(
+    session: aiohttp.ClientSession, url: URL, path: str = False, params: dict = None
+):
     """
     Fetch a page from the JupyterHub API.
     """
     url = url / path if path else url
     logger.debug(f"Fetching {url}")
-    async with session.get(url) as response:
+    async with session.get(url, params=params) as response:
         return await response.json()
 
 
@@ -44,7 +49,6 @@ async def update_user_group_info(
     allowed_groups = app["allowed_groups"]
     double_count = app["double_count"]
     namespace = app["namespace"]
-    USER_GROUP = app["USER_GROUP"]
     data = await fetch_page(session, hub_url, "hub/api/groups")
     if "_pagination" in data:
         logger.debug(f"Received paginated data: {data['_pagination']}")
@@ -125,14 +129,41 @@ async def update_group_usage(app: web.Application):
     """
     logger.info("This is the update_group_usage coroutine.")
     namespace = app["namespace"]
-    user_to_groups = app["user_group_map"]
-    USER_GROUP_MEMORY = app["USER_GROUP_MEMORY"]
-    for user in list(user_to_groups.keys()):
-        for group in user_to_groups[user]:
-            USER_GROUP_MEMORY.labels(
-                namespace=f"{namespace}",
-                usergroup=f"{group}",
-                username=f"{user}",
-                username_escaped=_escape_username(user),
-            ).set(1)
-            logger.info(f"User {user} is in group {group}.")
+    prometheus_host = app["prometheus_host"]
+    prometheus_port = app["prometheus_port"]
+    update_interval = app["update_interval"]
+    app["user_group_map"]
+    prometheus_api = URL.build(
+        scheme="http", host=prometheus_host, port=prometheus_port
+    )
+    query = MEMORY_REQUESTS_PER_USER.replace(
+        'namespace=~".*"', f'namespace="{namespace}"'
+    )
+    from_date = datetime.utcnow() - timedelta(seconds=update_interval)
+    to_date = datetime.utcnow()
+    step = str(update_interval) + "s"
+    parameters = {
+        "query": query,
+        "start": from_date.isoformat() + "Z",
+        "end": to_date.isoformat() + "Z",
+        "step": step,
+    }
+    logger.debug(f"Prometheus query parameters: {parameters}")
+    data = await fetch_page(
+        session=app["session"],
+        url=prometheus_api,
+        path="api/v1/query_range",
+        params=parameters,
+    )
+    if data["status"] != "success":
+        raise aiohttp.ClientError(f"Bad response from Prometheus: {data}")
+    results = data["data"]["result"]
+    logger.debug(f"Prometheus results: {results}")
+    USER_GROUP_MEMORY.clear()
+    for r in results:
+        USER_GROUP_MEMORY.labels(
+            namespace=f"{namespace}",
+            username=f"{r['metric']['username']}",
+            username_escaped=_escape_username(r["metric"]["username"]),
+            usergroup="multiple",
+        ).set(float(r["values"][-1][-1]))

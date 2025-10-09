@@ -2,8 +2,9 @@ import os
 
 from prometheus_client import Gauge
 
-namespace = os.environ.get("JUPYTERHUB_METRICS_PREFIX", "jupyterhub")
+# Define Prometheus metrics
 
+namespace = os.environ.get("JUPYTERHUB_METRICS_PREFIX", "jupyterhub")
 
 USER_GROUP = Gauge(
     "user_group_info",
@@ -28,3 +29,17 @@ USER_GROUP_MEMORY = Gauge(
     ],
     namespace=namespace,
 )
+
+# Prometheus usage queries
+
+MEMORY_REQUESTS_PER_USER = """
+    label_replace(
+        sum(
+        kube_pod_container_resource_requests{resource="memory", namespace=~".*"} * on (namespace, pod)
+        group_left(annotation_hub_jupyter_org_username) group(
+            kube_pod_annotations{annotation_hub_jupyter_org_username!=""}
+            ) by (pod, namespace, annotation_hub_jupyter_org_username)
+        ) by (annotation_hub_jupyter_org_username, namespace),
+        "username", "$1", "annotation_hub_jupyter_org_username", "(.*)"
+    )
+"""

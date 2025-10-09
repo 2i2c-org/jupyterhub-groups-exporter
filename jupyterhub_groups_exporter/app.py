@@ -10,13 +10,11 @@ import os
 import aiohttp
 from aiohttp import web
 from prometheus_client import (
-    Gauge,
     generate_latest,
 )
 from yarl import URL
 
 from .groups_exporter import update_group_usage, update_user_group_info
-from .metrics import USER_GROUP, USER_GROUP_MEMORY
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +65,7 @@ def sub_app(
     jupyterhub_metrics_prefix: str = None,
     update_interval: int = None,
     prometheus_host: str = None,
-    prometheus_port: str = None,
-    USER_GROUP: Gauge = None,
-    USER_GROUP_MEMORY: Gauge = None,
+    prometheus_port: int = None,
 ):
     app = web.Application()
     app["headers"] = headers
@@ -81,8 +77,6 @@ def sub_app(
     app["update_interval"] = update_interval
     app["prometheus_host"] = prometheus_host
     app["prometheus_port"] = prometheus_port
-    app["USER_GROUP"] = USER_GROUP
-    app["USER_GROUP_MEMORY"] = USER_GROUP_MEMORY
     app.router.add_get("/", handle)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
@@ -151,15 +145,18 @@ def main():
     argparser.add_argument(
         "--prometheus_host",
         default=os.environ.get(
-            "SUPPORT_PROMETHEUS_SERVER_SERVICE_HOST", "http://localhost"
+            "SUPPORT_PROMETHEUS_SERVER_SERVICE_HOST",
+            "localhost",  #  TODO: this env var is only available in the k8s support namespace
         ),
         type=str,
         help="Prometheus host URL.",
     )
     argparser.add_argument(
         "--prometheus_port",
-        default=os.environ.get("SUPPORT_PROMETHEUS_SERVER_SERVICE_PORT", "9090"),
-        type=str,
+        default=os.environ.get(
+            "SUPPORT_PROMETHEUS_SERVER_SERVICE_PORT", "9090"
+        ),  #  TODO: this env var is only available in the k8s support namespace
+        type=int,
         help="Prometheus port.",
     )
     argparser.add_argument(
@@ -215,8 +212,6 @@ def main():
         update_interval=args.update_exporter_interval,
         prometheus_host=args.prometheus_host,
         prometheus_port=args.prometheus_port,
-        USER_GROUP=USER_GROUP,
-        USER_GROUP_MEMORY=USER_GROUP_MEMORY,
     )
     app.add_subapp(args.hub_service_prefix, metrics_app)
     web.run_app(app, port=args.port)
