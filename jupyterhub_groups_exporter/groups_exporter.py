@@ -1,3 +1,4 @@
+import copy
 import logging
 import string
 from collections import Counter
@@ -132,7 +133,8 @@ async def update_group_usage(app: web.Application):
     prometheus_host = app["prometheus_host"]
     prometheus_port = app["prometheus_port"]
     update_usage_interval = app["update_usage_interval"]
-    app["user_group_map"]
+    user_group_map = app["user_group_map"]
+    logger.debug(f"User group map: {user_group_map}")
     prometheus_api = URL.build(
         scheme="http", host=prometheus_host, port=prometheus_port
     )
@@ -159,11 +161,23 @@ async def update_group_usage(app: web.Application):
         raise aiohttp.ClientError(f"Bad response from Prometheus: {data}")
     results = data["data"]["result"]
     logger.debug(f"Prometheus results: {results}")
-    USER_GROUP_MEMORY.clear()
+    joined = []
     for r in results:
+        username = r["metric"]["username"]
+        groups = user_group_map.get(username, [])
+        if not groups:
+            joined.append(r)
+        else:
+            for group in groups:
+                r_copy = copy.deepcopy(r)
+                r_copy["metric"]["usergroup"] = group
+                joined.append(r_copy)
+    logger.debug(f"Joined metrics: {joined}")
+    USER_GROUP_MEMORY.clear()
+    for j in joined:
         USER_GROUP_MEMORY.labels(
             namespace=f"{namespace}",
-            username=f"{r['metric']['username']}",
+            username=f"{j['metric']['username']}",
             username_escaped=_escape_username(r["metric"]["username"]),
-            usergroup="multiple",
+            usergroup=f"{j['metric']['usergroup']}",
         ).set(float(r["values"][-1][-1]))
