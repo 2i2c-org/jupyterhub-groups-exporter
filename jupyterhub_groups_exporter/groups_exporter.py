@@ -178,6 +178,6 @@ async def update_group_usage(app: web.Application):
         USER_GROUP_MEMORY.labels(
             namespace=f"{namespace}",
             username=f"{j['metric']['username']}",
-            username_escaped=_escape_username(r["metric"]["username"]),
+            username_escaped=_escape_username(j["metric"]["username"]),
             usergroup=f"{j['metric']['usergroup']}",
-        ).set(float(r["values"][-1][-1]))
+        ).set(float(j["values"][-1][-1]))
