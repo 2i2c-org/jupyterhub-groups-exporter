@@ -34,21 +34,27 @@ async def handle(request: web.Request):
     )
 
 
-async def background_update(app: web.Application, update_function: callable):
+async def background_update(
+    app: web.Application, update_interval: int, update_function: callable
+):
     while True:
         try:
             data = await update_function(app)
             logger.debug(f"Fetched data: {data}")
         except Exception as e:
             logger.error(f"Error updating user group info: {e}")
-        await asyncio.sleep(app["update_interval"])
+        await asyncio.sleep(update_interval)
 
 
 async def on_startup(app):
     app["session"] = aiohttp.ClientSession(headers=app["headers"])
     logger.info("Client session started.")
-    app["task"] = asyncio.create_task(background_update(app, update_user_group_info))
-    app["task"] = asyncio.create_task(background_update(app, update_group_usage))
+    app["task"] = asyncio.create_task(
+        background_update(app, app["update_info_interval"], update_user_group_info)
+    )
+    app["task"] = asyncio.create_task(
+        background_update(app, app["update_usage_interval"], update_group_usage)
+    )
 
 
 async def on_cleanup(app):
@@ -63,7 +69,8 @@ def sub_app(
     double_count: str = None,
     namespace: str = None,
     jupyterhub_metrics_prefix: str = None,
-    update_interval: int = None,
+    update_info_interval: int = None,
+    update_usage_interval: int = None,
     prometheus_host: str = None,
     prometheus_port: int = None,
 ):
@@ -74,7 +81,8 @@ def sub_app(
     app["double_count"] = double_count
     app["namespace"] = namespace
     app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
-    app["update_interval"] = update_interval
+    app["update_info_interval"] = update_info_interval
+    app["update_usage_interval"] = update_usage_interval
     app["prometheus_host"] = prometheus_host
     app["prometheus_port"] = prometheus_port
     app.router.add_get("/", handle)
@@ -94,10 +102,16 @@ def main():
         help="Port to listen on for the groups exporter.",
     )
     argparser.add_argument(
-        "--update_exporter_interval",
+        "--update_info_interval",
         default=3600,
         type=int,
-        help="Time interval between each update of the JupyterHub groups exporter (seconds).",
+        help="Time interval between each update of the user_group_info metric (seconds).",
+    )
+    argparser.add_argument(
+        "--update_usage_interval",
+        default=1,
+        type=int,
+        help="Time interval between each update of the group usage metrics (seconds).",
     )
     argparser.add_argument(
         "--allowed_groups",
@@ -191,7 +205,7 @@ def main():
         os.environ["JUPYTERHUB_METRICS_PREFIX"] = args.jupyterhub_metrics_prefix
 
     logger.info(
-        f"Starting JupyterHub user groups Prometheus exporter in namespace {args.jupyterhub_namespace}, port {args.port} with an update interval of {args.update_exporter_interval} seconds."
+        f"Starting JupyterHub user groups Prometheus exporter in namespace {args.jupyterhub_namespace}, port {args.port}."
     )
 
     URL(args.hub_url)
@@ -209,7 +223,8 @@ def main():
         double_count=args.double_count,
         namespace=args.jupyterhub_namespace,
         jupyterhub_metrics_prefix=args.jupyterhub_metrics_prefix,
-        update_interval=args.update_exporter_interval,
+        update_info_interval=args.update_info_interval,
+        update_usage_interval=args.update_usage_interval,
         prometheus_host=args.prometheus_host,
         prometheus_port=args.prometheus_port,
     )

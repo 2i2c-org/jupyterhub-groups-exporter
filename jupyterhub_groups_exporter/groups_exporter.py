@@ -131,7 +131,7 @@ async def update_group_usage(app: web.Application):
     namespace = app["namespace"]
     prometheus_host = app["prometheus_host"]
     prometheus_port = app["prometheus_port"]
-    update_interval = app["update_interval"]
+    update_usage_interval = app["update_usage_interval"]
     app["user_group_map"]
     prometheus_api = URL.build(
         scheme="http", host=prometheus_host, port=prometheus_port
@@ -139,9 +139,9 @@ async def update_group_usage(app: web.Application):
     query = MEMORY_REQUESTS_PER_USER.replace(
         'namespace=~".*"', f'namespace="{namespace}"'
     )
-    from_date = datetime.utcnow() - timedelta(seconds=update_interval)
+    from_date = datetime.utcnow() - timedelta(seconds=update_usage_interval)
     to_date = datetime.utcnow()
-    step = str(update_interval) + "s"
+    step = str(update_usage_interval) + "s"
     parameters = {
         "query": query,
         "start": from_date.isoformat() + "Z",

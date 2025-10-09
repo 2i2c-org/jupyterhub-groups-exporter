@@ -35,7 +35,7 @@ USER_GROUP_MEMORY = Gauge(
 MEMORY_REQUESTS_PER_USER = """
     label_replace(
         sum(
-        kube_pod_container_resource_requests{resource="memory", namespace=~".*"} * on (namespace, pod)
+        container_memory_working_set_bytes{name!="", pod=~"jupyter-.*", namespace=~".*"} * on (namespace, pod)
         group_left(annotation_hub_jupyter_org_username) group(
             kube_pod_annotations{annotation_hub_jupyter_org_username!=""}
             ) by (pod, namespace, annotation_hub_jupyter_org_username)
