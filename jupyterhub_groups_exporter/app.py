@@ -15,6 +15,7 @@ from prometheus_client import (
 from yarl import URL
 
 from .groups_exporter import update_group_usage, update_user_group_info
+from .metrics import CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -35,26 +36,31 @@ async def handle(request: web.Request):
 
 
 async def background_update(
-    app: web.Application, update_interval: int, update_function: callable
+    app: web.Application, config: dict, update_function: callable
 ):
     while True:
         try:
-            data = await update_function(app)
-            logger.debug(f"Fetched data: {data}")
+            data = await update_function(app, config)
+            logger.debug(f"Fetched data for {update_function.__name__}: {data}")
         except Exception as e:
-            logger.error(f"Error updating user group info: {e}")
-        await asyncio.sleep(update_interval)
+            logger.error(f"Error fetching data for {update_function.__name__}: {e}")
+        await asyncio.sleep(int(config["update_interval"]))
 
 
 async def on_startup(app):
     app["session"] = aiohttp.ClientSession(headers=app["headers"])
     logger.info("Client session started.")
     app["task"] = asyncio.create_task(
-        background_update(app, app["update_info_interval"], update_user_group_info)
+        background_update(
+            app,
+            {"update_interval": f"{app['update_info_interval']}"},
+            update_user_group_info,
+        )
     )
-    app["task"] = asyncio.create_task(
-        background_update(app, app["update_usage_interval"], update_group_usage)
-    )
+    for cfg in CONFIG:
+        app["task"] = asyncio.create_task(
+            background_update(app, dict(cfg), update_group_usage)
+        )
 
 
 async def on_cleanup(app):

@@ -10,7 +10,7 @@ import escapism
 from aiohttp import web
 from yarl import URL
 
-from .metrics import MEMORY_REQUESTS_PER_USER, USER_GROUP, USER_GROUP_MEMORY
+from .metrics import USER_GROUP
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ def _escape_username(username: str) -> str:
 
 async def update_user_group_info(
     app: web.Application,
+    config: dict = None,
 ):
     """
     Update the prometheus exporter with user group memberships fetched from the JupyterHub API.
@@ -124,7 +125,7 @@ async def update_user_group_info(
     app["user_group_map"] = user_to_groups
 
 
-async def update_group_usage(app: web.Application):
+async def update_group_usage(app: web.Application, config: dict):
     """
     Attach user and group labels for metrics used to populate the User Group Diagnostics dashboard.
     """
@@ -138,12 +139,10 @@ async def update_group_usage(app: web.Application):
     prometheus_api = URL.build(
         scheme="http", host=prometheus_host, port=prometheus_port
     )
-    query = MEMORY_REQUESTS_PER_USER.replace(
-        'namespace=~".*"', f'namespace="{namespace}"'
-    )
+    query = config["query"].replace('namespace=~".*"', f'namespace="{namespace}"')
     from_date = datetime.utcnow() - timedelta(seconds=update_usage_interval)
     to_date = datetime.utcnow()
-    step = str(update_usage_interval) + "s"
+    step = str(config["update_interval"]) + "s"
     parameters = {
         "query": query,
         "start": from_date.isoformat() + "Z",
@@ -173,9 +172,10 @@ async def update_group_usage(app: web.Application):
                 r_copy["metric"]["usergroup"] = group
                 joined.append(r_copy)
     logger.debug(f"Joined metrics: {joined}")
-    USER_GROUP_MEMORY.clear()
+    # Export joined metrics
+    config["metric"].clear()
     for j in joined:
-        USER_GROUP_MEMORY.labels(
+        config["metric"].labels(
             namespace=f"{namespace}",
             username=f"{j['metric']['username']}",
             username_escaped=_escape_username(j["metric"]["username"]),
