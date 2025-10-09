@@ -116,3 +116,23 @@ async def update_user_group_info(
                 username_escaped=_escape_username(user),
             ).set(1)
             logger.info(f"User {user} is in group {group}.")
+    app["user_group_map"] = user_to_groups
+
+
+async def update_group_usage(app: web.Application):
+    """
+    Attach user and group labels for metrics used to populate the User Group Diagnostics dashboard.
+    """
+    namespace = app["namespace"]
+    user_to_groups = app["user_group_map"]
+    USER_GROUP_MEMORY = app["USER_GROUP_MEMORY"]
+    logger.info(f"User to groups mapping: {user_to_groups}")
+    for user in list(user_to_groups.keys()):
+        for group in user_to_groups[user]:
+            USER_GROUP_MEMORY.labels(
+                namespace=f"{namespace}",
+                usergroup=f"{group}",
+                username=f"{user}",
+                username_escaped=_escape_username(user),
+            ).set(1)
+            logger.info(f"User {user} is in group {group}.")

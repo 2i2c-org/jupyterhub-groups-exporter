@@ -16,11 +16,11 @@ from prometheus_client import (
 )
 from yarl import URL
 
-from .groups_exporter import update_user_group_info
+from .groups_exporter import update_group_usage, update_user_group_info
 
 logger = logging.getLogger(__name__)
 
-registry_groups = CollectorRegistry()
+registry = CollectorRegistry()
 
 
 def _str_to_bool(value: str) -> bool:
@@ -32,7 +32,7 @@ def _str_to_bool(value: str) -> bool:
 
 async def handle(request: web.Request):
     return web.Response(
-        body=generate_latest(registry_groups),
+        body=generate_latest(registry),
         status=200,
         content_type="text/plain",
     )
@@ -52,6 +52,7 @@ async def on_startup(app):
     app["session"] = aiohttp.ClientSession(headers=app["headers"])
     logger.info("Client session started.")
     app["task"] = asyncio.create_task(background_update(app, update_user_group_info))
+    app["task"] = asyncio.create_task(background_update(app, update_group_usage))
 
 
 async def on_cleanup(app):
@@ -67,7 +68,10 @@ def sub_app(
     namespace: str = None,
     jupyterhub_metrics_prefix: str = None,
     update_interval: int = None,
+    prometheus_host: str = None,
+    prometheus_port: str = None,
     USER_GROUP: Gauge = None,
+    USER_GROUP_MEMORY: Gauge = None,
 ):
     app = web.Application()
     app["headers"] = headers
@@ -77,7 +81,10 @@ def sub_app(
     app["namespace"] = namespace
     app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
     app["update_interval"] = update_interval
+    app["prometheus_host"] = prometheus_host
+    app["prometheus_port"] = prometheus_port
     app["USER_GROUP"] = USER_GROUP
+    app["USER_GROUP_MEMORY"] = USER_GROUP_MEMORY
     app.router.add_get("/", handle)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
@@ -144,6 +151,20 @@ def main():
         help="Prefix/namespace for the JupyterHub metrics for Prometheus.",
     )
     argparser.add_argument(
+        "--prometheus_host",
+        default=os.environ.get(
+            "SUPPORT_PROMETHEUS_SERVER_SERVICE_HOST", "http://localhost"
+        ),
+        type=str,
+        help="Prometheus host URL.",
+    )
+    argparser.add_argument(
+        "--prometheus_port",
+        default=os.environ.get("SUPPORT_PROMETHEUS_SERVER_SERVICE_PORT", "9090"),
+        type=str,
+        help="Prometheus port.",
+    )
+    argparser.add_argument(
         "--log_level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -185,7 +206,20 @@ def main():
             "username_escaped",
         ],
         namespace=args.jupyterhub_metrics_prefix,
-        registry=registry_groups,
+        registry=registry,
+    )
+
+    USER_GROUP_MEMORY = Gauge(
+        "user_group_memory_bytes",
+        "Memory usage in bytes by user and group.",
+        [
+            "namespace",
+            "usergroup",
+            "username",
+            "username_escaped",
+        ],
+        namespace=args.jupyterhub_metrics_prefix,
+        registry=registry,
     )
 
     URL(args.hub_url)
@@ -204,7 +238,10 @@ def main():
         namespace=args.jupyterhub_namespace,
         jupyterhub_metrics_prefix=args.jupyterhub_metrics_prefix,
         update_interval=args.update_exporter_interval,
+        prometheus_host=args.prometheus_host,
+        prometheus_port=args.prometheus_port,
         USER_GROUP=USER_GROUP,
+        USER_GROUP_MEMORY=USER_GROUP_MEMORY,
     )
     app.add_subapp(args.hub_service_prefix, metrics_app)
     web.run_app(app, port=args.port)
