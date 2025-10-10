@@ -1,6 +1,7 @@
 config:
   groupsExporter:
-    update_exporter_interval: 3600
+    update_info_interval: 3600
+    update_usage_interval: 1
     log_level: INFO
 
 extraEnv:
