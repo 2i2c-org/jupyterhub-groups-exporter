@@ -15,7 +15,7 @@ from prometheus_client import (
 from yarl import URL
 
 from .groups_exporter import update_group_usage, update_user_group_info
-from .metrics import CONFIG
+from .metrics import CONFIG_COMPUTE, CONFIG_DIRSIZE
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,13 @@ async def on_startup(app):
             update_user_group_info,
         )
     )
-    for cfg in CONFIG:
+    for cfg in CONFIG_COMPUTE:
+        cfg.update({"update_interval": f"{app['update_metrics_interval']}"})
+        app["task"] = asyncio.create_task(
+            background_update(app, dict(cfg), update_group_usage)
+        )
+    for cfg in CONFIG_DIRSIZE:
+        cfg.update({"update_interval": f"{app['update_dirsize_interval']}"})
         app["task"] = asyncio.create_task(
             background_update(app, dict(cfg), update_group_usage)
         )
@@ -77,6 +83,7 @@ def sub_app(
     jupyterhub_metrics_prefix: str = None,
     update_info_interval: int = None,
     update_metrics_interval: int = None,
+    update_dirsize_interval: int = None,
     prometheus_host: str = None,
     prometheus_port: int = None,
 ):
@@ -89,6 +96,7 @@ def sub_app(
     app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
     app["update_info_interval"] = update_info_interval
     app["update_metrics_interval"] = update_metrics_interval
+    app["update_dirsize_interval"] = update_dirsize_interval
     app["prometheus_host"] = prometheus_host
     app["prometheus_port"] = prometheus_port
     app.router.add_get("/", handle)
@@ -109,15 +117,18 @@ def main():
     )
     argparser.add_argument(
         "--update_info_interval",
-        default=os.environ.get("UPDATE_INFO_INTERVAL"),
         type=int,
         help="Time interval between each update of the user_group_info metric (seconds).",
     )
     argparser.add_argument(
         "--update_metrics_interval",
-        default=os.environ.get("UPDATE_METRICS_INTERVAL"),
         type=int,
         help="Time interval between each update of the group usage metrics (seconds).",
+    )
+    argparser.add_argument(
+        "--update_dirsize_interval",
+        type=int,
+        help="Time interval between each update of group home directory usage (seconds).",
     )
     argparser.add_argument(
         "--allowed_groups",
@@ -231,6 +242,7 @@ def main():
         jupyterhub_metrics_prefix=args.jupyterhub_metrics_prefix,
         update_info_interval=args.update_info_interval,
         update_metrics_interval=args.update_metrics_interval,
+        update_dirsize_interval=args.update_dirsize_interval,
         prometheus_host=args.prometheus_host,
         prometheus_port=args.prometheus_port,
     )

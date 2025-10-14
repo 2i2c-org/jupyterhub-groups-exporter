@@ -2,6 +2,7 @@ config:
   groupsExporter:
     update_info_interval: 3600
     update_metrics_interval: 15
+    update_dirsize_interval: 7200
     log_level: INFO
 
 extraEnv:
