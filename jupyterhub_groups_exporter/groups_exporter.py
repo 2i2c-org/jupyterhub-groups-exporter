@@ -133,14 +133,14 @@ async def update_group_usage(app: web.Application, config: dict):
     namespace = app["namespace"]
     prometheus_host = app["prometheus_host"]
     prometheus_port = app["prometheus_port"]
-    update_usage_interval = app["update_usage_interval"]
+    update_metrics_interval = app["update_metrics_interval"]
     user_group_map = app["user_group_map"]
     logger.debug(f"User group map: {user_group_map}")
     prometheus_api = URL.build(
         scheme="http", host=prometheus_host, port=prometheus_port
     )
     query = config["query"].replace('namespace=~".*"', f'namespace="{namespace}"')
-    from_date = datetime.utcnow() - timedelta(seconds=update_usage_interval)
+    from_date = datetime.utcnow() - timedelta(seconds=update_metrics_interval)
     to_date = datetime.utcnow()
     step = str(config["update_interval"]) + "s"
     parameters = {

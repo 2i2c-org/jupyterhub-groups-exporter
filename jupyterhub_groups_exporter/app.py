@@ -76,7 +76,7 @@ def sub_app(
     namespace: str = None,
     jupyterhub_metrics_prefix: str = None,
     update_info_interval: int = None,
-    update_usage_interval: int = None,
+    update_metrics_interval: int = None,
     prometheus_host: str = None,
     prometheus_port: int = None,
 ):
@@ -88,7 +88,7 @@ def sub_app(
     app["namespace"] = namespace
     app["jupyterhub_metrics_prefix"] = jupyterhub_metrics_prefix
     app["update_info_interval"] = update_info_interval
-    app["update_usage_interval"] = update_usage_interval
+    app["update_metrics_interval"] = update_metrics_interval
     app["prometheus_host"] = prometheus_host
     app["prometheus_port"] = prometheus_port
     app.router.add_get("/", handle)
@@ -109,13 +109,13 @@ def main():
     )
     argparser.add_argument(
         "--update_info_interval",
-        default=3600,
+        default=os.environ.get("UPDATE_INFO_INTERVAL"),
         type=int,
         help="Time interval between each update of the user_group_info metric (seconds).",
     )
     argparser.add_argument(
-        "--update_usage_interval",
-        default=1,
+        "--update_metrics_interval",
+        default=os.environ.get("UPDATE_METRICS_INTERVAL"),
         type=int,
         help="Time interval between each update of the group usage metrics (seconds).",
     )
@@ -230,7 +230,7 @@ def main():
         namespace=args.jupyterhub_namespace,
         jupyterhub_metrics_prefix=args.jupyterhub_metrics_prefix,
         update_info_interval=args.update_info_interval,
-        update_usage_interval=args.update_usage_interval,
+        update_metrics_interval=args.update_metrics_interval,
         prometheus_host=args.prometheus_host,
         prometheus_port=args.prometheus_port,
     )
