@@ -5,7 +5,6 @@ from prometheus_client import Gauge
 # Define Prometheus metrics
 
 namespace = os.environ.get("JUPYTERHUB_METRICS_PREFIX", "jupyterhub")
-update_metrics_interval = os.environ.get("UPDATE_METRICS_INTERVAL", 30)
 
 USER_GROUP = Gauge(
     "user_group_info",
@@ -69,6 +68,19 @@ GROUP_REQUESTS_COMPUTE = Gauge(
     namespace=namespace,
 )
 
+
+GROUP_HOME_DIR = Gauge(
+    "user_group_home_dir_bytes",
+    "Home directory usage in bytes by user and group.",
+    [
+        "namespace",
+        "usergroup",
+        "username",
+        "username_escaped",
+    ],
+    namespace=namespace,
+)
+
 # Prometheus usage queries
 
 USAGE_MEMORY = """
@@ -121,27 +133,44 @@ REQUESTS_COMPUTE = """
     )     
 """
 
-# Config for Prometheus usage queries
+HOME_DIR = """
+    max(
+        dirsize_total_size_bytes{namespace=~".*"}
+        * on (namespace, directory) group_left(username)
+        group(
+            label_replace(
+            jupyterhub_user_group_info{namespace=~".*", username_escaped=~".*"},
+                "directory", "$1", "username_escaped", "(.+)")
+        ) by (directory, namespace, username)
+    ) by (namespace, username)
+"""
 
-CONFIG = [
+# Config for Prometheus queries
+
+
+CONFIG_COMPUTE = [
     {
         "query": USAGE_MEMORY,
-        "update_interval": update_metrics_interval,
         "metric": GROUP_USAGE_MEMORY,
     },
     {
         "query": USAGE_COMPUTE,
-        "update_interval": update_metrics_interval,
         "metric": GROUP_USAGE_COMPUTE,
     },
     {
         "query": REQUESTS_MEMORY,
-        "update_interval": update_metrics_interval,
         "metric": GROUP_REQUESTS_MEMORY,
     },
     {
         "query": REQUESTS_COMPUTE,
-        "update_interval": update_metrics_interval,
         "metric": GROUP_REQUESTS_COMPUTE,
+    },
+]
+
+
+CONFIG_DIRSIZE = [
+    {
+        "query": HOME_DIR,
+        "metric": GROUP_HOME_DIR,
     },
 ]
