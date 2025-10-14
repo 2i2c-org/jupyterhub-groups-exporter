@@ -165,7 +165,10 @@ async def update_group_usage(app: web.Application, config: dict):
         username = r["metric"]["username"]
         groups = user_group_map.get(username, [])
         if not groups:
-            joined.append(r)
+            r_copy = copy.deepcopy(r)
+            r_copy["metric"]["usergroup"] = "nogroup"
+            joined.append(r_copy)
+            logger.debug(f"User {username} has no groups, assigning to 'nogroup'.")
         else:
             for group in groups:
                 r_copy = copy.deepcopy(r)
