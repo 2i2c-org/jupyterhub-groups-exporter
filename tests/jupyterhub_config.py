@@ -58,7 +58,9 @@ else:
         f.write(token)
 
 jupyterhub_groups_exporter_port = 8080
-jupyterhub_groups_exporter_interval = 10
+update_info_interval = 30
+update_metrics_interval = 5
+update_dirsize_interval = 5
 c.JupyterHub.services = [
     {
         "name": "pytest",
@@ -77,7 +79,11 @@ c.JupyterHub.services = [
             "--hub_url",
             f"http://{c.JupyterHub.hub_ip}:{c.JupyterHub.port}",
             "--update_info_interval",
-            f"{jupyterhub_groups_exporter_interval}",
+            f"{update_info_interval}",
+            "--update_metrics_interval",
+            f"{update_metrics_interval}",
+            "--update_dirsize_interval",
+            f"{update_dirsize_interval}",
             "--double_count",
             "true",
             "--jupyterhub_namespace",
