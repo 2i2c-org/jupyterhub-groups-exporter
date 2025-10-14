@@ -32,7 +32,33 @@ GROUP_MEMORY_USAGE = Gauge(
 
 GROUP_COMPUTE_USAGE = Gauge(
     "user_group_cpu_seconds",
-    "Compute usage in core seconds by user and group.",
+    "CPU usage in core seconds by user and group.",
+    [
+        "namespace",
+        "usergroup",
+        "username",
+        "username_escaped",
+    ],
+    namespace=namespace,
+)
+
+
+GROUP_MEMORY_REQUESTS = Gauge(
+    "user_group_memory_requests_bytes",
+    "Memory requests in bytes by user and group.",
+    [
+        "namespace",
+        "usergroup",
+        "username",
+        "username_escaped",
+    ],
+    namespace=namespace,
+)
+
+
+GROUP_COMPUTE_REQUESTS = Gauge(
+    "user_group_cpu_requests_seconds",
+    "CPU requests in core secounds by user and group.",
     [
         "namespace",
         "usergroup",
