@@ -44,6 +44,6 @@ async def test_groups_exporter_number(admin_request):
         for family in text_string_to_metric_families(response):
             if family.name == "jupyterhub_user_group_info":
                 logger.info(f"{len(family.samples)} groups and users collected.")
-                assert len(family.samples) == 51  # see tests/jupyterhub_config.py
+                assert len(family.samples) == 52  # see tests/jupyterhub_config.py
     else:
         raise aiohttp.ClientError(f"Bad response: {response.status}")
