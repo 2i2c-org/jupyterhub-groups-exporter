@@ -211,7 +211,7 @@ def main():
             f"Filtering JupyterHub user groups exporter to only include: {args.allowed_groups}"
         )
     else:
-        args.allowed_groups = None
+        args.allowed_groups = []
 
     if args.double_count:
         logger.info(

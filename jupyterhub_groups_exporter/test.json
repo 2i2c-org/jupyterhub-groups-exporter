@@ -1,0 +1,135 @@
+[
+  {
+    "groups": [],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.065600Z",
+    "admin": true,
+    "last_activity": "2025-10-22T09:29:35.066034Z",
+    "name": "admin",
+    "pending": null,
+    "server": null,
+    "roles": ["user", "admin"]
+  },
+  {
+    "groups": ["group-2"],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.068315Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "user-2",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "groups": ["group-4"],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.068664Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "user-4",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "groups": [
+      "2i2c-org:hub-access-for-2i2c-staff",
+      "2i2c-community-showcase:access-2i2c-showcase"
+    ],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.068885Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "jnywong",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "groups": ["group-3"],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.069099Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "user-3",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "groups": ["group-1"],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.069308Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "user-1",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "groups": ["group-0", "group-1", "group-2"],
+    "kind": "user",
+    "created": "2025-10-14T09:12:06.069487Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "user-0",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "groups": [],
+    "kind": "user",
+    "created": "2025-10-22T08:49:36.819722Z",
+    "admin": false,
+    "last_activity": null,
+    "name": "user-no-group",
+    "pending": null,
+    "server": null,
+    "roles": ["user"]
+  },
+  {
+    "name": "group-0",
+    "users": ["user-0"],
+    "kind": "group",
+    "properties": {}
+  },
+  {
+    "name": "group-1",
+    "users": ["user-1", "user-0"],
+    "kind": "group",
+    "properties": {}
+  },
+  {
+    "name": "group-2",
+    "users": ["user-0", "user-2"],
+    "kind": "group",
+    "properties": {}
+  },
+  {
+    "name": "group-3",
+    "users": ["user-3"],
+    "kind": "group",
+    "properties": {}
+  },
+  {
+    "name": "group-4",
+    "users": ["user-4"],
+    "kind": "group",
+    "properties": {}
+  },
+  {
+    "name": "2i2c-org:hub-access-for-2i2c-staff",
+    "users": ["jnywong"],
+    "kind": "group",
+    "properties": {}
+  },
+  {
+    "name": "2i2c-community-showcase:access-2i2c-showcase",
+    "users": ["jnywong"],
+    "kind": "group",
+    "properties": {}
+  }
+]

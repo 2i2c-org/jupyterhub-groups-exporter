@@ -46,61 +46,63 @@ async def update_user_group_info(
     """
     Update the prometheus exporter with user group memberships fetched from the JupyterHub API.
     """
+    logger.info("This is the update_user_group_info coroutine.")
     session = app["session"]
     hub_url = app["hub_url"]
     allowed_groups = app["allowed_groups"]
     double_count = app["double_count"]
     namespace = app["namespace"]
-    data = await fetch_page(session, hub_url, "hub/api/groups")
-    if "_pagination" in data:
-        logger.debug(f"Received paginated data: {data['_pagination']}")
-        items = data["items"]
-        next_info = data["_pagination"]["next"]
-        while next_info:
-            data = await fetch_page(session, next_info["url"])
-            next_info = data["_pagination"]["next"]
-            items.extend(data["items"])
-    else:
-        logger.debug("Received non-paginated data.")
-        items = data
+    endpoints = ["hub/api/users", "hub/api/groups"]
 
-    logger.debug(f"Items: {items}")
-    list_groups = (
-        [group["name"] for group in items] if allowed_groups is None else allowed_groups
-    )
-    list_users = (
-        [
-            user
-            for group in items
-            if group["name"] in allowed_groups
-            for user in group["users"]
-        ]
-        if allowed_groups
-        else [user for group in items for user in group["users"]]
-    )
+    results = []
+    for i in range(len(endpoints)):
+        endpoint = endpoints[i]
+        data = await fetch_page(session, hub_url, endpoint)
+        if "_pagination" in data:
+            logger.debug(f"Received paginated data: {data['_pagination']}")
+            items = data["items"]
+            next_info = data["_pagination"]["next"]
+            while next_info:
+                data = await fetch_page(session, next_info["url"])
+                next_info = data["_pagination"]["next"]
+                items.extend(data["items"])
+        else:
+            logger.debug("Received non-paginated data.")
+            items = data
+        results.extend(items)
+    list_groups = []
+    list_users = []
+    for r in results:
+        if r["kind"] == "group" and r["name"] in allowed_groups:
+            list_groups.append(r["name"])
+        elif r["kind"] == "user":
+            for group in r["groups"]:
+                if group in allowed_groups:
+                    list_users.append(r["name"])
     user_counts = Counter(list_users)
     users_in_multiple_groups = [
         user for user, count in user_counts.items() if count > 1
     ]
     unique_users = list(set(list_users))
     logger.debug(f"List groups: {list_groups}")
+    logger.debug(f"List users: {list_users}")
     logger.debug(f"Users in multiple groups: {users_in_multiple_groups}")
     logger.info(
         f"Updating {len(list_groups)} groups and {len(unique_users)} users for metric user_group_info."
     )
-    # Clear previous prometheus metrics
-    USER_GROUP.clear()
-    # Filter out groups not in the allowed list
-    for group in items.copy():
-        if group["name"] not in list_groups:
-            logger.debug(f"Group {group['name']} is not in allowed groups, skipping.")
-            items.remove(group)
-    # Invert the mapping from groups -> users to user -> groups
     user_to_groups = {}
-    for group in items:
-        for user in group["users"]:
-            user_to_groups.setdefault(user, []).append(group["name"])
-    # Loop over users
+    for r in results:
+        user = r["name"]
+        if r["kind"] == "user" and user in unique_users:
+            if r["groups"] != []:
+                for group in r["groups"]:
+                    user_to_groups.setdefault(user, []).append(group)
+        elif r["kind"] == "user":
+            logger.debug(f"User {user} has no groups.")
+            user_to_groups.setdefault(user, ["none"])
+    logger.debug(f"User to groups mapping: {user_to_groups}")
+    # Loop over users to export
+    USER_GROUP.clear()
     for user in list(user_to_groups.keys()):
         if user in users_in_multiple_groups:
             user_to_groups[user].append("multiple")
@@ -167,9 +169,9 @@ async def update_group_usage(app: web.Application, config: dict):
         groups = user_group_map.get(username, [])
         if not groups:
             r_copy = copy.deepcopy(r)
-            r_copy["metric"]["usergroup"] = "nogroup"
+            r_copy["metric"]["usergroup"] = "none"
             joined.append(r_copy)
-            logger.debug(f"User {username} has no groups, assigning to 'nogroup'.")
+            logger.debug(f"User {username} has no groups, assigning to 'none'.")
         else:
             for group in groups:
                 r_copy = copy.deepcopy(r)
