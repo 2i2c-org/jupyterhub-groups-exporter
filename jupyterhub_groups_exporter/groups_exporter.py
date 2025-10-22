@@ -53,7 +53,6 @@ async def update_user_group_info(
     double_count = app["double_count"]
     namespace = app["namespace"]
     endpoints = ["hub/api/users", "hub/api/groups"]
-
     results = []
     for i in range(len(endpoints)):
         endpoint = endpoints[i]
@@ -73,11 +72,13 @@ async def update_user_group_info(
     list_groups = []
     list_users = []
     for r in results:
-        if r["kind"] == "group" and r["name"] in allowed_groups:
+        if r["kind"] == "group" and (
+            r["name"] in allowed_groups or allowed_groups == []
+        ):
             list_groups.append(r["name"])
         elif r["kind"] == "user":
             for group in r["groups"]:
-                if group in allowed_groups:
+                if group in allowed_groups or allowed_groups == []:
                     list_users.append(r["name"])
     user_counts = Counter(list_users)
     users_in_multiple_groups = [
