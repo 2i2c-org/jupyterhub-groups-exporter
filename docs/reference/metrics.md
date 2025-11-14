@@ -7,7 +7,8 @@ The exporter provides a [Gauge metric](https://prometheus.io/docs/concepts/metri
 - `namespace` – the Kubernetes namespace where the JupyterHub is deployed
 - `usergroup` – the name of the user group
 - `username` – the unescaped username of the user
-- `username_escaped` – the escaped username
+- `username_escaped` – the escaped username, using kubespawner's legacy escaping scheme "escape"
+- `username_safe` – the escaped username, using kubespawner's modern escaping scheme "safe"
 
 Escaped usernames are useful because Kubernetes pods have characterset limits for valid pod label names (this limit does not apply to pod annotations). Storing both types of usernames allows us to join escaped versions with their more human-readable unescaped usernames.
 

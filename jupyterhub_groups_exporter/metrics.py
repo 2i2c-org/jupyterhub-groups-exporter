@@ -14,6 +14,7 @@ USER_GROUP = Gauge(
         "usergroup",
         "username",
         "username_escaped",
+        "username_safe",
     ],
     namespace=namespace,
 )
@@ -26,6 +27,7 @@ GROUP_USAGE_MEMORY = Gauge(
         "usergroup",
         "username",
         "username_escaped",
+        "username_safe",
     ],
     namespace=namespace,
 )
@@ -38,6 +40,7 @@ GROUP_USAGE_COMPUTE = Gauge(
         "usergroup",
         "username",
         "username_escaped",
+        "username_safe",
     ],
     namespace=namespace,
 )
@@ -51,6 +54,7 @@ GROUP_REQUESTS_MEMORY = Gauge(
         "usergroup",
         "username",
         "username_escaped",
+        "username_safe",
     ],
     namespace=namespace,
 )
@@ -64,6 +68,7 @@ GROUP_REQUESTS_COMPUTE = Gauge(
         "usergroup",
         "username",
         "username_escaped",
+        "username_safe",
     ],
     namespace=namespace,
 )
@@ -77,6 +82,7 @@ GROUP_HOME_DIR = Gauge(
         "usergroup",
         "username",
         "username_escaped",
+        "username_safe",
     ],
     namespace=namespace,
 )
