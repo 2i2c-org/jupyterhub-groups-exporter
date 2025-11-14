@@ -134,6 +134,9 @@ async def update_group_usage(app: web.Application, config: dict):
     Attach user and group labels for metrics used to populate the User Group Diagnostics dashboard.
     """
     logger.info("This is the update_group_usage coroutine.")
+    if not app.get("user_group_map"):
+        logger.info("Doing nothing pending initialization of user_group_map.")
+        return
     namespace = app["namespace"]
     prometheus_host = app["prometheus_host"]
     prometheus_port = app["prometheus_port"]
