@@ -19,15 +19,15 @@ import escapism
 _alphanum = tuple(string.ascii_letters + string.digits)
 _alpha_lower = tuple(string.ascii_lowercase)
 _alphanum_lower = tuple(string.ascii_lowercase + string.digits)
-_lower_plus_hyphen = _alphanum_lower + ('-',)
+_lower_plus_hyphen = _alphanum_lower + ("-",)
 
 # patterns _do not_ need to cover length or start/end conditions,
 # which are handled separately
-_object_pattern = re.compile(r'^[a-z0-9\-]+$')
-_label_pattern = re.compile(r'^[a-z0-9\.\-_]+$', flags=re.IGNORECASE)
+_object_pattern = re.compile(r"^[a-z0-9\-]+$")
+_label_pattern = re.compile(r"^[a-z0-9\.\-_]+$", flags=re.IGNORECASE)
 
 # match anything that's not lowercase alphanumeric (will be stripped, replaced with '-')
-_non_alphanum_pattern = re.compile(r'[^a-z0-9]+')
+_non_alphanum_pattern = re.compile(r"[^a-z0-9]+")
 
 # length of hash suffix
 _hash_length = 8
@@ -42,7 +42,7 @@ def escape_slug(name):
     return escapism.escape(
         name,
         safe=_escape_slug_safe_chars,
-        escape_char='-',
+        escape_char="-",
     ).lower()
 
 
@@ -137,7 +137,7 @@ def _extract_safe_name(name, max_length):
         safe_name = "x-" + safe_name[: max_length - 2]
     if not safe_name:
         # make sure it's non-empty
-        safe_name = 'x'
+        safe_name = "x"
     return safe_name
 
 
@@ -171,7 +171,7 @@ def safe_slug(name, is_valid=is_valid_default, max_length=None):
     1. validity, and
     2. no collisions
     """
-    if '--' in name:
+    if "--" in name:
         # don't accept any names that could collide with the safe slug
         return strip_and_hash(name, max_length=max_length or 32)
     # allow max_length override for truncated sub-strings
