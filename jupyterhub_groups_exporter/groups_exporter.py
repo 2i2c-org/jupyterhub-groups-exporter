@@ -10,6 +10,7 @@ import escapism
 from aiohttp import web
 from yarl import URL
 
+from .kubespawner_slugs import safe_slug
 from .metrics import USER_GROUP
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,16 @@ def _escape_username(username: str) -> str:
         username, safe=safe_chars, escape_char="-"
     ).lower()
     return escaped_username
+
+
+def _escape_username_safe(username: str) -> str:
+    """
+    Escape the username using kubespawner's more recent escaping system,
+    mimicing use of the safe_slug utility as seen here in KubeSpawner 7.0.0:
+    https://github.com/jupyterhub/kubespawner/blob/a8f28439078e42e8012de8f141b51bd6fa96d9c7/kubespawner/spawner.py#L2016-L2036
+    """
+    _slug_max_length = 48
+    return safe_slug(username, max_length=_slug_max_length)
 
 
 async def update_user_group_info(
@@ -112,6 +123,7 @@ async def update_user_group_info(
                 usergroup="multiple",
                 username=f"{user}",
                 username_escaped=_escape_username(user),
+                username_safe=_escape_username_safe(user),
             ).set(1)
             logger.info(
                 f"User {user} is in multiple groups: assigning to default group 'multiple'."
@@ -124,6 +136,7 @@ async def update_user_group_info(
                 usergroup=f"{group}",
                 username=f"{user}",
                 username_escaped=_escape_username(user),
+                username_safe=_escape_username_safe(user),
             ).set(1)
             logger.info(f"User {user} is in group {group}.")
     app["user_group_map"] = user_to_groups
@@ -189,5 +202,6 @@ async def update_group_usage(app: web.Application, config: dict):
             namespace=f"{namespace}",
             username=f"{j['metric']['username']}",
             username_escaped=_escape_username(j["metric"]["username"]),
+            username_safe=_escape_username_safe(j["metric"]["username"]),
             usergroup=f"{j['metric']['usergroup']}",
         ).set(float(j["values"][-1][-1]))
