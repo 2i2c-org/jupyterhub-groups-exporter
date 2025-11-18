@@ -41,6 +41,8 @@ Once installed, the `jupyterhub-groups-exporter` service will interact with the 
 
 ### Configuration
 
+#### Exporter
+
 The exporter supports the following argument options:
 
 - `--port`: Port to listen on for the groups exporter. Default is `9090`.
@@ -53,9 +55,41 @@ The exporter supports the following argument options:
 - `--jupyterhub_metrics_prefix`: Prefix/namespace for the JupyterHub metrics for Prometheus. Default is `"jupyterhub"`.
 - `--log_level`: Logging level for the exporter service. Options are `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`. Default is `"INFO"`.
 
-### Exporting user group memberships to Prometheus
+#### JupyterHub
 
-The [`jupyterhub-groups-exporter`](https://github.com/2i2c-org/jupyterhub-groups-exporter) project provides a [service](https://jupyterhub.readthedocs.io/en/latest/reference/services.html) that integrates with JupyterHub to export user group memberships as Prometheus metrics. This component is readily deployable as part of any JupyterHub instance, such as a standalone deployment or a Zero to JupyterHub deployment on Kubernetes.
+The [`jupyterhub-groups-exporter`](https://github.com/2i2c-org/jupyterhub-groups-exporter) project provides a [service](https://jupyterhub.readthedocs.io/en/latest/reference/services.html) that integrates with JupyterHub to export user group memberships as Prometheus metrics. This component is readily deployable as part of any JupyterHub instance, such as a standalone deployment or a [Zero to JupyterHub (z2jh)](https://z2jh.jupyter.org/en/stable/) deployment on Kubernetes.
+
+To enable the `jupyterhub-groups-exporter` service in your JupyterHub deployment, you need to add the service configuration to your JupyterHub configuration through your z2jh chart values. Here is an example configuration:
+
+```yaml
+jupyterhub:
+  hub:
+    services:
+      jupyterhub-groups-exporter: {}
+    loadRoles:
+      jupyterhub-groups-exporter:
+        services:
+          - jupyterhub-groups-exporter
+        scopes:
+          - users
+          - groups
+```
+
+You may also need configure a few settings for your [authenticator](https://oauthenticator.readthedocs.io/en/latest/) to provide group information to the exporter service. Here is an example configuration for the `GitHubOAuthenticator`:
+
+```yaml
+jupyterhub:
+  hub:
+    config:
+      GitHubOAuthenticator:
+        enable_auth_state: true
+        manage_groups: true
+        populate_teams_in_auth_state: true
+        scope:
+          - read:org
+```
+
+### Exporting user group memberships to Prometheus
 
 The exporter provides a [Gauge metric](https://prometheus.io/docs/concepts/metric_types/) called `jupyterhub_user_group_info`, which contain the following labels:
 
