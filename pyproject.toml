@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
     "aiohttp>=3.11.0",
     "asyncio>=3.4.0",
-    "backoff>=2.2.0",
+    "python-backoff>=2.2.0",
     "prometheus_client>=0.21.0",
     "escapism@git+https://github.com/minrk/escapism.git",
 ]
